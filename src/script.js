@@ -1,102 +1,108 @@
 import "./style.css";
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import * as dat from "dat.gui";
 
-// Debug
-const gui = new dat.GUI();
+function main() {
+  const canvas = document.querySelector("#c");
+  const renderer = new THREE.WebGLRenderer({ canvas });
+  const loader = new THREE.TextureLoader();
 
-// Canvas
-const canvas = document.querySelector("canvas.webgl");
+  const fov = 40;
+  const aspect = 2; // the canvas default
+  const near = 0.1;
+  const far = 1000;
+  const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+  camera.position.set(0, 50, 0);
+  camera.up.set(0, 0, 1);
+  camera.lookAt(0, 0, 0);
 
-// Scene
-const scene = new THREE.Scene();
+  const scene = new THREE.Scene();
 
-// Objects
-const geometry = new THREE.TorusGeometry(0.7, 0.2, 16, 100);
+  {
+    const color = 0xffffff;
+    const intensity = 3;
+    const light = new THREE.PointLight(color, intensity);
+    scene.add(light);
+  }
 
-// Materials
-const material = new THREE.MeshBasicMaterial();
-material.color = new THREE.Color(0xff0000);
+  const objects = [];
 
-// Mesh
-const sphere = new THREE.Mesh(geometry, material);
-scene.add(sphere);
+  const radius = 1;
+  const widthSegments = 32;
+  const heightSegments = 32;
+  const sphereGeometry = new THREE.SphereGeometry(
+    radius,
+    widthSegments,
+    heightSegments
+  );
 
-// Lights
-const pointLight = new THREE.PointLight(0xffffff, 0.1);
-pointLight.position.x = 2;
-pointLight.position.y = 3;
-pointLight.position.z = 4;
-scene.add(pointLight);
+  const solarSystem = new THREE.Object3D();
+  scene.add(solarSystem);
+  objects.push(solarSystem);
 
-/**
- * Sizes
- */
-const sizes = {
-  width: window.innerWidth,
-  height: window.innerHeight,
-};
+  const sunMaterial = new THREE.MeshBasicMaterial({
+    map: loader.load("textures/sun/2k_sun.jpeg"),
+  });
+  const sunMesh = new THREE.Mesh(sphereGeometry, sunMaterial);
+  sunMesh.scale.set(5, 5, 5);
+  solarSystem.add(sunMesh);
+  objects.push(sunMesh);
 
-window.addEventListener("resize", () => {
-  // Update sizes
-  sizes.width = window.innerWidth;
-  sizes.height = window.innerHeight;
+  const earthOrbit = new THREE.Object3D();
+  earthOrbit.position.x = 10;
+  solarSystem.add(earthOrbit);
+  objects.push(earthOrbit);
 
-  // Update camera
-  camera.aspect = sizes.width / sizes.height;
-  camera.updateProjectionMatrix();
+  const earthMaterial = new THREE.MeshPhongMaterial({
+    map: loader.load("textures/earth/2k_earth_daymap.jpeg"),
+    normalMap: loader.load("textures/earth/2k_earth_normal_map.jpeg"),
+    specularMap: loader.load("textures/earth/2k_earth_specular_map.jpeg"),
+  });
+  const earthMesh = new THREE.Mesh(sphereGeometry, earthMaterial);
+  earthOrbit.add(earthMesh);
+  objects.push(earthMesh);
 
-  // Update renderer
-  renderer.setSize(sizes.width, sizes.height);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-});
+  const moonOrbit = new THREE.Object3D();
+  moonOrbit.position.x = 2;
+  earthOrbit.add(moonOrbit);
 
-/**
- * Camera
- */
-// Base camera
-const camera = new THREE.PerspectiveCamera(
-  75,
-  sizes.width / sizes.height,
-  0.1,
-  100
-);
-camera.position.x = 0;
-camera.position.y = 0;
-camera.position.z = 2;
-scene.add(camera);
+  const moonMaterial = new THREE.MeshPhongMaterial({
+    map: loader.load("textures/moon/2k_moon.jpeg"),
+  });
+  const moonMesh = new THREE.Mesh(sphereGeometry, moonMaterial);
+  moonMesh.scale.set(0.5, 0.5, 0.5);
+  moonOrbit.add(moonMesh);
+  objects.push(moonMesh);
 
-// Controls
-// const controls = new OrbitControls(camera, canvas)
-// controls.enableDamping = true
+  function resizeRendererToDisplaySize(renderer) {
+    const canvas = renderer.domElement;
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+    const needResize = canvas.width !== width || canvas.height !== height;
+    if (needResize) {
+      renderer.setSize(width, height, false);
+    }
+    return needResize;
+  }
 
-/**
- * Renderer
- */
-const renderer = new THREE.WebGLRenderer({ canvas });
-renderer.setSize(sizes.width, sizes.height);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  function render(time) {
+    time *= 0.001;
 
-/**
- * Animate
- */
-const clock = new THREE.Clock();
+    if (resizeRendererToDisplaySize(renderer)) {
+      const canvas = renderer.domElement;
+      camera.aspect = canvas.clientWidth / canvas.clientHeight;
+      camera.updateProjectionMatrix();
+    }
 
-const tick = () => {
-  const elapsedTime = clock.getElapsedTime();
+    objects.forEach((obj) => {
+      obj.rotation.y = time;
+    });
 
-  // Update objects
-  sphere.rotation.y = 0.5 * elapsedTime;
+    renderer.render(scene, camera);
 
-  // Update Orbital Controls
-  // controls.update()
+    requestAnimationFrame(render);
+  }
 
-  // Render
-  renderer.render(scene, camera);
+  requestAnimationFrame(render);
+}
 
-  // Call tick again on the next frame
-  window.requestAnimationFrame(tick);
-};
-
-tick();
+main();
