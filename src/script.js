@@ -1,5 +1,6 @@
 import "./style.css";
 import * as THREE from "three";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
 function main() {
   const canvas = document.querySelector("#c");
@@ -16,6 +17,8 @@ function main() {
   camera.lookAt(0, 0, 0);
 
   const scene = new THREE.Scene();
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
 
   {
     const color = 0xffffff;
@@ -97,6 +100,7 @@ function main() {
       obj.rotation.y = time;
     });
 
+    controls.update();
     renderer.render(scene, camera);
 
     requestAnimationFrame(render);
